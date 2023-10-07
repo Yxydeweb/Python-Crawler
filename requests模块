@@ -1,0 +1,25 @@
+requests 模块： python 中原生的一款基于网络请求的模块，功能非常强大，简单便捷，效率极高。作用：模拟浏览器发请求。
+如何使用：( requests 模块的编码流程）
+
+    指定 url 
+    发起请求
+    获取响应数据
+    持久化存储
+
+实例：
+import requests
+# 通用爬虫
+# step 1:指定url
+url='https://www.sogou.com/'
+# step 2:发起请求
+# step 3:获取响应数据
+response=requests.get(url=url)
+# get方法返回响应对象
+response_text=response.text
+# .text返回的是字符串形式的响应数据
+# step 4:持久化存储数据
+with open('./sogou.html','w',encoding='utf-8') as fp:
+ fp.write(response_text)
+
+print('爬取成功！')
+
