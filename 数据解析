@@ -1,0 +1,137 @@
+聚焦爬虫：爬取页面中指定的页面内容。 
+编码流程：
+-指定 url
+-发起请求
+-获取响应数据
+-数据解析
+-持久化存储
+数据解析分类：
+﹣正则
+-bs4
+- xpath (*****)
+数据解析原理概述：
+-解析的局部的文本内容都会在标签之间或者标签对应的属性中进行存储
+-1．进行指定标签的定位
+-2．标签或者标签对应的属性中存储的数据值进行提取（解析）
+
+xpath解析
+xpath 解析：最常用且最便捷高效的一种解析方式。通用性。 
+- xpath 解析原理：
+
+    实例化一个 etree 的对象，且需要将被解析的页面源码数据加载到该对象中。
+    调用 etree 对象中的 xpath 方法结合着 xpath 表达式实现标签的定位和内容的捕获。-环境的安装： - pip install lxml 
+
+-如何实例化一个 etree 对象： from lxml import etree 
+
+    1．将本地的 html 文档中的源码数据加载到 etree 对象中：etree . parse ( filePath )
+    2．可以将从互联网上获取的源码数据加载到该对象中：etree . HTML (' page _ text ')
+
+- xpath 表达式：
+xpath("表达式")
+
+    /：表示的是从根节点开始定位。表示的是一个层级。
+    //：表示的是多个层级。可以表示从任意位置开始定位。
+    属性定位：// div [@ class =' song ']  ---tag [@ attrName =" attrValue "]
+    索引定位：// div [@ class =" song "]/ p [3]索引是从1开始的。
+    .:表示的是当前节点
+    ..:表示的是当前节点的父节点
+    |:或，定位左右两边的标签，如xpath('//div/ul/li | //div//ol/li')
+
+-取文本：
+
+    / text ()获取的是标签中直系的文本内容
+    // text ()标签中非直系的文本内容（所有的文本内容）
+
+-取属性：
+
+    /@ attrName ==> img / src
+
+实例：
+58同城：
+
+ 
+
+import requests
+from lxml import etree
+
+# 爬取页面源码数据
+url = 'https://hrb.58.com/ershoufang/'
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'}
+page_text = requests.get(url=url, headers=headers).text
+# 数据解析
+tree=etree.HTML(page_text)
+div_list=tree.xpath('//div[@class="property-content-title"]')
+fp=open('58.txt','w',encoding='utf-8')
+for i in div_list:
+    # .局部解析
+    h3_title=i.xpath('./h3[@class="property-content-title-name"]/text()')[0]
+    fp.write(h3_title+'\n')
+
+4K图片下载:
+
+ 
+
+import requests
+from lxml import etree
+import os
+if not os.path.exists('./piclibs'):
+    os.mkdir('./piclibs')
+index = [f'index_{i}.html' for i in range(1, 62)]
+for i in range(0, 61):
+    # 爬取页面源码数据
+    url = 'http://pic.netbian.com/4kmeinv/'
+    if i != 0:
+        url = 'http://pic.netbian.com/4kmeinv/' + index[i]
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'}
+    response = requests.get(url=url, headers=headers)
+    # 转换编码格式
+    response.encoding = 'gbk'
+    page_text = response.text
+    # 数据解析
+    tree = etree.HTML(page_text)
+    a_list = tree.xpath('//ul[@class="clearfix"]/li/a')
+    # .局部解析
+    for i in a_list:
+        # 拼接完整地址
+        img_src = 'http://pic.netbian.com' + i.xpath('./img/@src')[0]
+        alt = i.xpath('./img/@alt')[0]
+        img_name = alt + '.jpg'
+        # 通用处理中文乱码问题
+        # img_name = img_name.encode('iso-8859-1').decode('gbk')
+        # 持久化存储
+        img_data = requests.get(url=img_src, headers=headers).content
+        img_path = 'piclibs/' + img_name
+        with open(img_path, 'wb') as fp:
+            fp.write(img_data)
+            print(img_name, '下载成功！')
+
+
+下载简历模版:
+
+import requests
+from lxml import etree
+import os
+
+if not os.path.exists('./models'):
+    os.mkdir('./models')
+url = 'https://sc.chinaz.com/jianli/'
+# 爬取页面源码数据
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'}
+response = requests.get(url=url, headers=headers)
+page_text = response.text
+# 数据解析
+tree = etree.HTML(page_text)
+a_list = tree.xpath('//div[contains(@class,"ws_block")]/a')
+for i in a_list:
+    href = i.xpath('./@href')[0]
+    response = requests.get(url=href, headers=headers)
+    response.encoding = 'utf-8'
+    detail_page = response.text
+    detail_tree = etree.HTML(detail_page)
+    model_name = detail_tree.xpath('//h1/text()')[0]+'.rar'
+    down_load_href = detail_tree.xpath('//div[@id="down"]//ul[@class="clearfix"]/li[1]/a/@href')[0]
+    data = requests.get(url=down_load_href, headers=headers).content
+    img_path = 'models/' + model_name
+    with open(img_path, 'wb') as fp:
+        fp.write(data)
+        print(model_name, '下载成功！')
