@@ -1,0 +1,51 @@
+ 解决单线程爬取数据效率低的问题
+异步爬虫方式：
+   1.多线程，多进程（不建议使用）：
+         好处：可以为相关阻塞的操作单独开启线程或进程，阻塞操作就可以异步执行
+         弊端：无法无限制的开启多线程或多进程
+    2.线程池，进程池（适当使用  ）：
+         好处：可以降低系统对进程或线程创建和销毁的频率，从而降低系统的开销
+         弊端：池中线程或进程的数量是有限的
+
+模拟单线程串行方式执行：
+
+import time
+
+
+def get_page(str):
+    print('正在下载：', str) 
+    time.sleep(2)
+    print(str, '下载成功')
+
+
+name_list = ['123', '234', '34']
+start = time.time()
+for i in range(len(name_list)):
+    get_page(name_list[i])
+end = time.time()
+print(f'耗费时间{end - start} seconds') # 6
+
+模拟线程池方式执行：（线程池只处理阻塞且耗时的操作）
+
+import time
+# 导入线程池
+from multiprocessing.dummy import Pool
+
+
+def get_page(str):
+    print('正在下载：', str)
+    time.sleep(2)
+    print(str, '下载成功')
+
+
+name_list = ['123', '234', '34']
+start = time.time()
+# 实例化线程池，池内含3个线程
+pool = Pool(3)
+# 将列表中每一个元素传给get_page进行处理
+pool.map(get_page, name_list) # 若get_page有返回值则map会返回一个列表
+end = time.time()
+print(f'耗费时间{end - start} seconds') # 2
+
+ctrl+f---搜索
+xpath和bs4只能定位标签，不能定位JS代码（正则表达式）
