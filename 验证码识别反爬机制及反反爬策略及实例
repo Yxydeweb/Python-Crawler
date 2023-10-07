@@ -1,0 +1,195 @@
+反爬机制：识别验证码图片中的数据，用于模拟登陆操作。
+识别验证码的操作：
+
+    人工肉眼识别
+    第三方自动识别(超级鹰)
+
+第三方自动识别：
+
+    将验证码图片下载到本地
+    调用平台提供的示例代码进行图片数据识别
+
+超级鹰代码(第三方自动识别验证码)：
+
+import requests
+from hashlib import md5
+
+class Chaojiying_Client(object):
+
+    def __init__(self, username, password, soft_id):
+        self.username = username
+        password =  password.encode('utf8')
+        self.password = md5(password).hexdigest()
+        self.soft_id = soft_id
+        self.base_params = {
+            'user': self.username,
+            'pass2': self.password,
+            'softid': self.soft_id,
+        }
+        self.headers = {
+            'Connection': 'Keep-Alive',
+            'User-Agent': 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0)',
+        }
+
+    def PostPic(self, im, codetype):
+        """
+        im: 图片字节
+        codetype: 题目类型 参考 http://www.chaojiying.com/price.html
+        """
+        params = {
+            'codetype': codetype,
+        }
+        params.update(self.base_params)
+        files = {'userfile': ('ccc.jpg', im)}
+        r = requests.post('http://upload.chaojiying.net/Upload/Processing.php', data=params, files=files, headers=self.headers)
+        return r.json()
+
+    def PostPic_base64(self, base64_str, codetype):
+        """
+        im: 图片字节
+        codetype: 题目类型 参考 http://www.chaojiying.com/price.html
+        """
+        params = {
+            'codetype': codetype,
+            'file_base64':base64_str
+        }
+        params.update(self.base_params)
+        r = requests.post('http://upload.chaojiying.net/Upload/Processing.php', data=params, headers=self.headers)
+        return r.json()
+
+    def ReportError(self, im_id):
+        """
+        im_id:报错题目的图片ID
+        """
+        params = {
+            'id': im_id,
+        }
+        params.update(self.base_params)
+        r = requests.post('http://upload.chaojiying.net/Upload/ReportError.php', data=params, headers=self.headers)
+        return r.json()
+# 自己建的
+    def GetCode(src, codetype):
+        chaojiying = Chaojiying_Client('xy2153348823', '00201125115', '952677')  # 用户中心>>软件ID 生成一个替换 96001
+        im = open(src, 'rb').read()  # 本地图片文件路径 来替换 a.jpg 有时WIN系统须要//
+        # print(chaojiying.PostPic(im, codetype))  # 1902 验证码类型  官方网站>>价格体系 3.4+版 print 后要加()
+        return chaojiying.PostPic(im, codetype)  # 二选一，不然扣两次题分
+        # print chaojiying.PostPic(base64_str, 1902)  #此处为传入 base64代码
+
+
+模拟登陆：
+点击登录后会发起一个post请求，post请求中的参数会携带录入过的信息（用户名，密码等）
+1.验证码的识别，获取验证码图片的文字数据
+2.对post请求进行发送（处理请求参数）
+3.对响应数据进行持久化存储
+
+实例：
+破解古诗文网登录验证码并登录(不成功全改为用session发送请求，验证码也需要cookie)
+
+ 
+
+import requests
+from lxml import etree
+from cjy import Chaojiying_Client as cc
+
+url = 'https://so.gushiwen.cn/user/login.aspx?from=http://so.gushiwen.cn/user/collect.aspx'
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'
+}
+# 1.对验证码图片进行捕获和识别
+page_text = requests.get(url=url, headers=headers).text
+tree = etree.HTML(page_text)
+src = 'https://so.gushiwen.cn' + tree.xpath('//div[@class="mainreg2"]/img[@id="imgCode"]/@src')[0]
+img_data = requests.get(url=src, headers=headers).content
+with open('./code.jpg', 'wb') as fp:
+    fp.write(img_data)
+code = cc.GetCode('code.jpg', 1004)['pic_str']
+login_url = 'https://so.gushiwen.cn/user/login.aspx?from=http%3a%2f%2fso.gushiwen.cn%2fuser%2fcollect.aspx'
+data = {
+    '__VIEWSTATE': "yu5CYqCoppXksv8a6ZqM2MJRdvLkBghpIchR0+2WFaFatQZ/eBQtghhR+1TzTmw6zWwU92oRM2GHkyRn+VYJ38Ny/NreB8Bx5Ri/3O/ntDkUi4Uo2FFrCwdwP5owWpB3s8Z8rFiNXAkmUUEwN4URQ07abx8=",
+    '__VIEWSTATEGENERATOR': "C93BE1AE",
+    'from': "http://so.gushiwen.cn/user/collect.aspx",
+    'email': "18800430498",
+    'pwd': "yxy123456",
+    'code': code,
+    'denglu': "登录"
+}
+response = requests.post(url=login_url, data=data, headers=headers)
+response.encoding = 'utf-8'
+print(response.status_code) # 获取状态响应码,200-成功
+
+模拟登陆的cookie操作(爬取个人主页信息不成功)
+
+http/https协议特性：无状态
+没有请求到对应数据的原因：
+   发起的第二次基于个人主页页面请求的时候，服务器端并不知道该请求是基于登录状态下的请求。
+cookie：用来让服务器端记录客户端的相关状态
+解决方法：
+
+    手动处理cookie，通过抓包工具获取cookie，再将其封装到headers中
+    缺点：有的cookie有有效时长，动态变化
+    自动处理cookie
+    cookie在模拟登陆post请求后由服务器端创建
+    session会话对象：
+       作用：
+             可以进行请求的发送
+             如果请求过程中产生了cookie，则该cookie会被自动储存/携带在该session对象中    
+    步骤：
+           创建一个session对象：session=requests.Session()     
+
+             使用session对象进行模拟登陆post请求的发送
+             session对象对个人主页对应的get请求进行发送
+
+
+ 
+
+import requests
+from lxml import etree
+from cjy import Chaojiying_Client as cc
+
+url = 'https://so.gushiwen.cn/user/login.aspx?from=http://so.gushiwen.cn/user/collect.aspx'
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'
+}
+# 1.对验证码图片进行捕获和识别
+session = requests.Session()
+page_text = session.get(url=url, headers=headers).text
+tree = etree.HTML(page_text)
+src = 'https://so.gushiwen.cn' + tree.xpath('//div[@class="mainreg2"]/img[@id="imgCode"]/@src')[0]
+img_data = session.get(url=src, headers=headers).content
+with open('./code.jpg', 'wb') as fp:
+    fp.write(img_data)
+code = cc.GetCode('code.jpg', 1004)['pic_str']
+login_url = 'https://so.gushiwen.cn/user/login.aspx?from=http%3a%2f%2fso.gushiwen.cn%2fuser%2fcollect.aspx'
+data = {
+    '__VIEWSTATE': "yu5CYqCoppXksv8a6ZqM2MJRdvLkBghpIchR0+2WFaFatQZ/eBQtghhR+1TzTmw6zWwU92oRM2GHkyRn+VYJ38Ny/NreB8Bx5Ri/3O/ntDkUi4Uo2FFrCwdwP5owWpB3s8Z8rFiNXAkmUUEwN4URQ07abx8=",
+    '__VIEWSTATEGENERATOR': "C93BE1AE",
+    'from': "http://so.gushiwen.cn/user/collect.aspx",
+    'email': "18800430498",
+    'pwd': "yxy123456",
+    'code': code,
+    'denglu': "登录"
+}
+# 使用Session对象进行post请求发送
+
+response = session.post(url=login_url, data=data, headers=headers)
+response.encoding = 'utf-8'
+print(response.status_code)  # 获取状态响应码,200-成功
+with open('gsw.html', 'w', encoding='utf-8') as fp:
+    fp.write(response.text)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
