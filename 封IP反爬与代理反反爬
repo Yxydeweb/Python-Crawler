@@ -1,0 +1,48 @@
+解决403，IP访问频率过高，IP被封问题
+什么是代理：
+   代理服务器（中转站） 本机<——>代理服务器<——>web服务器
+代理的作用：
+    1.突破自身IP访问的限制
+    2.隐藏自身真实IP，使其免受攻击
+代理相关的网站：
+    1.快代理
+    2.西祠代里
+    3.www.goubanjia.com
+代理类型：
+    1.http
+    2.https
+代理IP的透明度：
+    1.透明：服务器知道本次请求使用了代理，也知道IP的真实地址
+    2.匿名：服务器知道本次请求使用了代理，但不知道IP的真实地址
+    3.高匿：服务器不知道本次请求使用了代理，更不知道IP的真实地址
+
+没用代理：
+
+import requests
+from lxml import etree
+from cjy import Chaojiying_Client as cc
+
+url = 'https://www.baidu.com/s?wd=ip'
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'
+}
+page_text=requests.get(url=url,headers=headers).text
+with open('ip.html','w',encoding='utf-8') as fp:
+    fp.write(page_text)
+
+用了代理：
+
+import requests
+from lxml import etree
+from cjy import Chaojiying_Client as cc
+
+url = 'https://www.baidu.com/s?wd=ip'
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0'
+}
+page_text=requests.get(url=url,headers=headers,proxies={'http':'183.236.232.160'}).text
+with open('ip.html','w',encoding='utf-8') as fp:
+    fp.write(page_text)
+
+
+
