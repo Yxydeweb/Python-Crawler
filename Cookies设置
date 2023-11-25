@@ -1,0 +1,51 @@
+# Cookies设置
+# ①使用浏览器检查功能获取Cookies,将其添加到headers
+import requests
+
+url = 'https://xueqiu.com/statuses/hot/listV2.json?since_id=-1&max_id=562767&size=15'
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+    'Cookie':
+        'acw_tc=276077a617008736532495185e042e71e147c1e5b9f5e3d0fa5c10caebedb0;\
+         xq_a_token=4fda997cf0d3bc4ef43eba42532cf38a54bcbc00;\
+          xqat=4fda997cf0d3bc4ef43eba42532cf38a54bcbc00;\
+           xq_r_token=a440894245f0f9be071ea5c41d674edb42789120;\
+            xq_id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOi0xLCJpc3MiOiJ1YyIsImV4cCI6MTcwMzI5MTg4MiwiY3RtIjoxNzAwODczNjIxODAyLCJjaWQiOiJkOWQwbjRBWnVwIn0.nR0yCOYmv0etK4YJyJYxpna6pksQ8-95d3qAomLUBlVAEAoNaT6Sqq_PxK8DgDpqauIXj3UcHsBJ5eUmyH7bJMCFmt5h3bQKtlMrgY3T_F91RtuAVNuvJBqjmj0H30o7eWV2sihYuLJ9hV1iMds1CxVuXpyIpngUy_E4ssWYROs6DU6Vmwr7fxHJp40qRJWAbncwJbCitJm6HfdRKNeKAkiO3s6ktqW36JgsIIk1anOl5Pkspz1CCunbqQwHarzY1oSeOCn3HmJU3D8eLCAVsOaFYPowLOnAvA4pI_4Y-_d7fk_hD2w4tcZ7sQ7D1wjYSHWOP4P4pjdjQIfl0hTizg;\
+             cookiesu=221700873653645;\
+              u=221700873653645;\
+               Hm_lvt_1db88642e346389874251b5a1eded6e3=1700873660;\
+                Hm_lpvt_1db88642e346389874251b5a1eded6e3=1700873660;\
+                 device_id=20890d189e7559c5af04d0b5003bbb74'
+
+}
+
+response = requests.get(url=url, headers=headers)
+print(response)
+
+# ②利用响应的cookies属性获取Cookies，将其添加到请求中
+import requests
+
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+}
+main_url = 'https://xueqiu.com/'
+main_response = requests.get(url=main_url, headers=headers)
+cookies = main_response.cookies  # 到首页获取cookies
+url = 'https://xueqiu.com/statuses/hot/listV2.json?since_id=-1&max_id=562767&size=15'
+
+response = requests.get(url=url, headers=headers, cookies=cookies)  # 将cookies加入到请求中
+print(response)
+
+# ③利用Session发送请求，将cookies保存到Session对象的cookies属性中
+import requests
+
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+}
+main_url = 'https://xueqiu.com/'
+session = requests.Session()
+main_response = session.get(url=main_url, headers=headers)  # 利用session请求获取cookies，存储到了Session对象的cookies属性中
+url = 'https://xueqiu.com/statuses/hot/listV2.json?since_id=-1&max_id=562767&size=15'
+
+response = session.get(url=url, headers=headers)  # session请求
+print(response)
